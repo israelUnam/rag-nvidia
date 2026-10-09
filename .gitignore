@@ -1,0 +1,56 @@
+# Python virtual environments
+.venv/
+venv/
+env/
+venv_*/
+
+# Python cache / build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+service-account*.json
+secrets/
+
+# Knowledge base documents (project data, may contain personal information)
+app/data/documents/*
+!app/data/documents/.gitkeep
+
+# Logs and local databases
+*.log
+logs/
+*.sqlite
+*.db
+
+# Temporary & backup files
+*.bak
+*.tmp
+*.temp
+*~
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini

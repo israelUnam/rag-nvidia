@@ -1,0 +1,1780 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Informativo de Proyectos</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --primary-soft: #eef2ff;
+            --text: #1f2937;
+            --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+            --bg: #f9fafb;
+            --surface: #ffffff;
+            --border: #e5e7eb;
+            --border-light: #f3f4f6;
+            --green: #059669;
+            --green-soft: #d1fae5;
+            --amber: #b45309;
+            --amber-soft: #fef3c7;
+            --gray-soft: #f3f4f6;
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.12);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 25%, #f8fafc 50%, #f1f5f9 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 1440px;
+            height: 92vh;
+            background: var(--surface);
+            border-radius: 24px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-light);
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            overflow: hidden;
+        }
+
+        /* ---------- Sidebar ---------- */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+            background: var(--bg);
+            min-height: 0;
+        }
+
+        .sidebar-header {
+            padding: 20px 20px 12px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .count-badge {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--primary);
+            background: var(--primary-soft);
+            padding: 2px 10px;
+            border-radius: 999px;
+        }
+
+        .search {
+            margin-top: 12px;
+            width: 100%;
+            padding: 9px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            background: var(--bg);
+        }
+
+        .search:focus { border-color: var(--primary); background: var(--surface); }
+
+        .project-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .project-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 14px;
+            transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+            text-align: left;
+            font: inherit;
+            color: inherit;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .project-card:hover { border-color: #c7d2fe; transform: translateY(-1px); }
+        .project-card.active { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+
+        .project-card.all {
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .project-card.all .card-select {
+            flex: 1;
+            width: auto;
+            min-width: 0;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .project-card.all .card-update { align-self: center; flex-shrink: 0; }
+        .project-card.all .card-status { flex-basis: 100%; }
+
+        .card-select {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            text-align: left;
+            font: inherit;
+            color: inherit;
+            width: 100%;
+        }
+
+        .card-update {
+            align-self: flex-start;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--primary);
+            background: var(--surface);
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .card-update:hover:not(:disabled) { background: var(--primary-soft); }
+        .card-update:disabled { opacity: 0.6; cursor: wait; }
+
+        .card-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .card-delete {
+            align-self: flex-start;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            border: 1px solid #fca5a5;
+            background: var(--surface);
+            color: #dc2626;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.15s, border-color 0.15s;
+        }
+
+        .card-delete:hover:not(:disabled) { background: #fee2e2; border-color: #ef4444; }
+        .card-delete:disabled { opacity: 0.5; cursor: wait; }
+
+        .card-status {
+            font-size: 11px;
+            line-height: 1.4;
+            color: var(--text-secondary);
+        }
+
+        .card-status.error { color: #b91c1c; }
+        .card-status.ok { color: var(--green); }
+
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .badge {
+            flex-shrink: 0;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+
+        .badge.done { color: var(--green); background: var(--green-soft); }
+        .badge.progress { color: var(--amber); background: var(--amber-soft); }
+        .badge.other { color: var(--text-secondary); background: var(--gray-soft); }
+
+        .card-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .progress {
+            margin-top: 10px;
+            height: 6px;
+            background: var(--border-light);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), #818cf8);
+            border-radius: 999px;
+        }
+
+        .progress-label {
+            margin-top: 4px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .empty {
+            padding: 30px 10px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* ---------- Main ---------- */
+        .main {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .main-header {
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .main-header h1 { font-size: 20px; font-weight: 600; }
+        .main-header p { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .status.ok .status-dot { background: #10b981; }
+        .status.error .status-dot { background: #ef4444; }
+
+        .project-detail {
+            display: none;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, var(--primary-soft) 0%, var(--surface) 100%);
+        }
+
+        .project-detail.show { display: block; }
+
+        .detail-title {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .detail-sub {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .detail-desc {
+            font-size: 13px;
+            color: var(--text);
+            margin-top: 10px;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .detail-desc.expanded { -webkit-line-clamp: unset; display: block; }
+
+        .link-button {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 12px;
+            cursor: pointer;
+            padding: 0;
+            margin-top: 4px;
+        }
+
+        .detail-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .action-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--primary);
+            background: var(--surface);
+            color: var(--primary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .action-button:hover:not(:disabled) { background: var(--primary-soft); }
+        .action-button:disabled { opacity: 0.6; cursor: wait; }
+
+        .action-button.danger {
+            border-color: #fca5a5;
+            color: #dc2626;
+        }
+        .action-button.danger:hover:not(:disabled) {
+            background: #fee2e2;
+            border-color: #ef4444;
+        }
+
+        .action-status { font-size: 12px; color: var(--text-secondary); }
+        .action-status.error { color: #b91c1c; }
+        .action-status.ok { color: var(--green); }
+
+        /* ---------- Modal de confirmación de borrado ---------- */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-box {
+            background: var(--surface);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 440px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            transform: scale(0.95) translateY(8px);
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .modal-overlay.active .modal-box {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .modal-icon-badge {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: #fee2e2;
+            color: #dc2626;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .modal-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.3;
+        }
+
+        .modal-message {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .modal-warning-box {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            padding: 11px 13px;
+            font-size: 12px;
+            color: #991b1b;
+            line-height: 1.45;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
+        .modal-btn {
+            padding: 9px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 1px solid transparent;
+        }
+
+        .modal-btn.cancel {
+            background: var(--bg);
+            border-color: var(--border);
+            color: var(--text);
+        }
+
+        .modal-btn.cancel:hover {
+            background: var(--border-light);
+        }
+
+        .modal-btn.delete {
+            background: #dc2626;
+            color: #ffffff;
+        }
+
+        .modal-btn.delete:hover:not(:disabled) {
+            background: #b91c1c;
+        }
+
+        .modal-btn.delete:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .metric {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+
+        .metric-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+        .metric-value { font-size: 15px; font-weight: 600; margin-top: 2px; }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            background: var(--bg);
+            min-height: 0;
+        }
+
+        .message {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 18px;
+            align-items: flex-start;
+            animation: fadeInUp 0.25s ease;
+        }
+
+        .message.user { justify-content: flex-end; }
+
+        .avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+        }
+
+        .bubble {
+            max-width: 75%;
+            padding: 14px 18px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.55;
+            word-wrap: break-word;
+        }
+
+        .message.bot .bubble {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 6px;
+        }
+
+        .message.user .bubble {
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+
+        .bubble-context {
+            display: block;
+            font-size: 11px;
+            opacity: 0.8;
+            margin-bottom: 4px;
+        }
+
+        .bubble ul { margin: 6px 0 6px 18px; }
+        .bubble li { margin: 2px 0; }
+        .bubble sup { color: var(--primary); font-weight: 600; font-size: 10px; }
+
+        .message.bot .bubble { max-width: 88%; }
+        .message.bot .bubble > p { margin: 0 0 10px; }
+        .message.bot .bubble > p:last-child { margin-bottom: 0; }
+        .message.bot .bubble h1,
+        .message.bot .bubble h2,
+        .message.bot .bubble h3,
+        .message.bot .bubble h4,
+        .message.bot .bubble h5,
+        .message.bot .bubble h6 {
+            font-weight: 600;
+            line-height: 1.3;
+            margin: 14px 0 6px;
+        }
+        .message.bot .bubble h1 { font-size: 18px; }
+        .message.bot .bubble h2 { font-size: 16px; }
+        .message.bot .bubble h3 { font-size: 15px; }
+        .message.bot .bubble h4,
+        .message.bot .bubble h5,
+        .message.bot .bubble h6 { font-size: 14px; }
+        .message.bot .bubble :is(h1, h2, h3, h4, h5, h6):first-child { margin-top: 0; }
+        .message.bot .bubble ol { margin: 6px 0 10px 20px; }
+        .message.bot .bubble ul { margin: 6px 0 10px 18px; }
+        .message.bot .bubble li { margin: 3px 0; }
+        .message.bot .bubble :is(ul, ol) :is(ul, ol) { margin: 3px 0 3px 16px; }
+        .message.bot .bubble a { color: var(--primary-dark); }
+        .message.bot .bubble code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 12.5px;
+            background: var(--gray-soft);
+            padding: 1px 5px;
+            border-radius: 5px;
+        }
+        .message.bot .bubble pre {
+            margin: 8px 0 10px;
+            padding: 10px 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow-x: auto;
+            line-height: 1.45;
+        }
+        .message.bot .bubble pre code {
+            background: none;
+            padding: 0;
+            border-radius: 0;
+            font-size: 12.5px;
+        }
+        .message.bot .bubble blockquote {
+            margin: 8px 0 10px;
+            padding: 2px 0 2px 12px;
+            border-left: 3px solid #c7d2fe;
+            color: var(--text-secondary);
+        }
+        .message.bot .bubble blockquote p:last-child { margin-bottom: 0; }
+        .message.bot .bubble .table-wrap { overflow-x: auto; margin: 8px 0 10px; }
+        .message.bot .bubble table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .message.bot .bubble th,
+        .message.bot .bubble td {
+            border: 1px solid var(--border);
+            padding: 6px 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        .message.bot .bubble th { background: var(--bg); font-weight: 600; }
+        .message.bot .bubble hr {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 12px 0;
+        }
+
+        .sources {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .sources-label { font-size: 12px; color: var(--text-muted); margin-right: 2px; }
+
+        .source-chip {
+            font-size: 11px;
+            color: var(--primary-dark);
+            background: var(--primary-soft);
+            padding: 3px 9px;
+            border-radius: 999px;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .typing {
+            display: none;
+            gap: 10px;
+            align-items: center;
+            padding: 0 24px 12px;
+            background: var(--bg);
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .dots span {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            margin: 0 1px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            animation: blink 1.2s infinite;
+        }
+
+        .dots span:nth-child(2) { animation-delay: 0.2s; }
+        .dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        .suggestions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 12px 24px 0;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+        }
+
+        .suggestion {
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .suggestion:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+
+        .composer {
+            padding: 12px 24px 18px;
+            background: var(--surface);
+        }
+
+        .context-chip {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--primary-dark);
+            background: var(--primary-soft);
+            padding: 4px 6px 4px 10px;
+            border-radius: 999px;
+            margin-bottom: 8px;
+            max-width: 100%;
+        }
+
+        .context-chip.show { display: inline-flex; }
+
+        .context-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .context-chip button {
+            border: none;
+            background: rgba(79,70,229,0.12);
+            color: var(--primary-dark);
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 12px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .input-row { display: flex; gap: 10px; }
+
+        .input-row input {
+            flex: 1;
+            padding: 13px 18px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            font-size: 14px;
+            outline: none;
+            background: var(--bg);
+        }
+
+        .input-row input:focus { border-color: var(--primary); background: var(--surface); }
+
+        .input-row button {
+            padding: 0 22px;
+            border: none;
+            border-radius: 14px;
+            background: var(--primary);
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .input-row button:hover { background: var(--primary-dark); }
+        .input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        @keyframes blink { 0%, 80%, 100% { opacity: 0.3; } 40% { opacity: 1; } }
+
+        @media (max-width: 1000px) {
+            .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; min-height: 95vh; }
+            .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+            .project-list { flex-direction: row; overflow-x: auto; overflow-y: hidden; }
+            .project-card { min-width: 260px; }
+            .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .messages { min-height: 50vh; }
+        }
+
+        @media (max-width: 640px) {
+            body { padding: 0; }
+            .app { border-radius: 0; }
+            .bubble { max-width: 88%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>📁 Proyectos <span class="count-badge" id="projectCount">0</span></h2>
+                <input class="search" id="searchInput" type="text" placeholder="Buscar proyecto o director...">
+            </div>
+            <div class="project-list" id="projectList"></div>
+        </aside>
+
+        <main class="main">
+            <header class="main-header">
+                <div>
+                    <h1>Chat Informativo de Proyectos</h1>
+                    <p>Consulta objetivos, responsables, presupuesto, riesgos y avance de cada proyecto</p>
+                </div>
+                <div class="status" id="status"><span class="status-dot"></span><span id="statusText">Verificando conexión...</span></div>
+            </header>
+
+            <section class="project-detail" id="projectDetail"></section>
+            <input type="file" id="documentInput" accept=".json,.jsonl,.md,text/markdown,application/json,application/jsonl,application/x-ndjson" hidden>
+
+            <div class="messages" id="messages"></div>
+
+            <div class="typing" id="typing">
+                <div class="avatar">✨</div>
+                <span>Buscando en la base de conocimiento</span>
+                <span class="dots"><span></span><span></span><span></span></span>
+            </div>
+
+            <div class="suggestions" id="suggestions"></div>
+
+            <div class="composer">
+                <div class="context-chip" id="contextChip">
+                    <span id="contextText"></span>
+                    <button onclick="selectProject(null)" title="Preguntar sobre todos los proyectos">✕</button>
+                </div>
+                <div class="input-row">
+                    <input type="text" id="messageInput" placeholder="Escribe tu pregunta sobre los proyectos..." maxlength="500">
+                    <button id="sendBtn" onclick="sendMessage()">Enviar</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de confirmación de borrado -->
+    <div class="modal-overlay" id="deleteModal" aria-hidden="true" role="dialog">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div class="modal-icon-badge">🗑️</div>
+                <h3 class="modal-title">¿Eliminar proyecto?</h3>
+            </div>
+            <p class="modal-message" id="deleteModalMessage">
+                ¿Estás seguro de que deseas eliminar este proyecto?
+            </p>
+            <div class="modal-warning-box">
+                ⚠️ <strong>Atención:</strong> Se eliminará el archivo del servidor y <strong>todos sus fragmentos indexados en la base de datos de Supabase</strong>. Esta acción no se puede deshacer.
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="modal-btn cancel" id="cancelDeleteBtn">Cancelar</button>
+                <button type="button" class="modal-btn delete" id="confirmDeleteBtn">Eliminar definitivamente</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = window.location.origin;
+
+        const projectList = document.getElementById('projectList');
+        const projectCount = document.getElementById('projectCount');
+        const searchInput = document.getElementById('searchInput');
+        const projectDetail = document.getElementById('projectDetail');
+        const messagesEl = document.getElementById('messages');
+        const typingEl = document.getElementById('typing');
+        const suggestionsEl = document.getElementById('suggestions');
+        const contextChip = document.getElementById('contextChip');
+        const contextText = document.getElementById('contextText');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const documentInput = document.getElementById('documentInput');
+
+        let projects = [];
+        let titles = {};
+        let selected = null;
+        let uploadTarget = null;
+        let uploadMode = 'update';
+        let updatingSlug = null;
+        let actionMessage = { slug: null, text: '', kind: '' };
+        const NEW_PROJECT_SLUG = '__new__';
+
+        const currency = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 });
+
+        const PROJECT_QUESTIONS = [
+            '¿Cuál es el objetivo general?',
+            '¿Quién integra el equipo de dirección?',
+            '¿Cuáles son los hitos y entregables?',
+            '¿Qué riesgos se presentaron y cómo se mitigaron?',
+            '¿Cuál es el costo real ejecutado?'
+        ];
+
+        init();
+
+        async function init() {
+            messageInput.addEventListener('keydown', e => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+            });
+            searchInput.addEventListener('input', renderProjects);
+            documentInput.addEventListener('change', onDocumentSelected);
+
+            document.getElementById('cancelDeleteBtn').addEventListener('click', closeDeleteModal);
+            document.getElementById('confirmDeleteBtn').addEventListener('click', executeDeleteProject);
+            const deleteModalEl = document.getElementById('deleteModal');
+            deleteModalEl.addEventListener('click', (e) => {
+                if (e.target === deleteModalEl) closeDeleteModal();
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && deleteModalEl.classList.contains('active')) closeDeleteModal();
+            });
+
+            await Promise.all([checkHealth(), loadProjects()]);
+            showWelcome();
+            messageInput.focus();
+        }
+
+        async function checkHealth() {
+            const status = document.getElementById('status');
+            const text = document.getElementById('statusText');
+            try {
+                const response = await fetch(`${API_BASE_URL}/healthz`);
+                const data = await response.json();
+                const ok = response.ok && data.database_connected;
+                status.className = `status ${ok ? 'ok' : 'error'}`;
+                text.textContent = ok ? 'Sistema listo' : 'Problemas con la base de datos';
+            } catch {
+                status.className = 'status error';
+                text.textContent = 'Conexión no disponible';
+            }
+        }
+
+        async function loadProjects() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/projects`);
+                const data = await response.json();
+                projects = data.projects || [];
+                titles = data.titles || {};
+            } catch (error) {
+                console.error('Error loading projects:', error);
+                projects = [];
+            }
+            projectCount.textContent = projects.length;
+            renderProjects();
+            renderSuggestions();
+        }
+
+        // ---------- Helpers ----------
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text ?? '';
+            return div.innerHTML;
+        }
+
+        function formatDate(iso) {
+            if (!iso) return '—';
+            const [y, m, d] = iso.split('-').map(Number);
+            return new Date(y, m - 1, d).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function formatMoney(value) {
+            const number = Number(value);
+            return value === null || value === undefined || Number.isNaN(number) ? '—' : currency.format(number);
+        }
+
+        function statusBadge(estado) {
+            const value = (estado || 'Sin estado').trim();
+            const lower = value.toLowerCase();
+            const kind = lower.startsWith('complet') || lower.startsWith('termin') ? 'done'
+                : lower.includes('progreso') ? 'progress' : 'other';
+            return `<span class="badge ${kind}">${escapeHtml(value)}</span>`;
+        }
+
+        function progressOf(project) {
+            const total = Number(project.paquetesTrabajo) || 0;
+            const done = Number(project.paquetesCompletados) || 0;
+            return { total, done, pct: total ? Math.round((done / total) * 100) : 0 };
+        }
+
+        // ---------- Sidebar ----------
+        function renderProjects() {
+            const scroll = projectList.scrollTop;
+            const term = searchInput.value.trim().toLowerCase();
+            const visible = projects.filter(p =>
+                !term || [p.nombre, p.director, p.area].some(v => (v || '').toLowerCase().includes(term))
+            );
+
+            projectList.innerHTML = '';
+
+            const adding = updatingSlug === NEW_PROJECT_SLUG;
+            const all = document.createElement('div');
+            all.className = `project-card all ${selected ? '' : 'active'}`;
+            all.innerHTML = `
+                <button type="button" class="card-select">🗂️ Todos los proyectos</button>
+                <button type="button" class="card-update" ${updatingSlug ? 'disabled' : ''}
+                    title="Sube el archivo JSON, JSONL o Markdown (.md) de uno o varios proyectos que todavía no están en la lista">
+                    ${adding ? 'Añadiendo…' : '＋ Añadir'}
+                </button>
+                ${actionMessage.slug === NEW_PROJECT_SLUG && actionMessage.text
+                    ? `<div class="card-status ${escapeHtml(actionMessage.kind)}">${escapeHtml(actionMessage.text)}</div>` : ''}
+            `;
+            all.querySelector('.card-select').onclick = () => selectProject(null);
+            all.querySelector('.card-update').onclick = (event) => openNewProjectPicker(event);
+            projectList.appendChild(all);
+
+            if (!visible.length) {
+                projectList.insertAdjacentHTML('beforeend',
+                    `<div class="empty">${projects.length ? 'Ningún proyecto coincide con la búsqueda' : 'No hay proyectos cargados'}</div>`);
+                projectList.scrollTop = scroll;
+                return;
+            }
+
+            visible.forEach(p => {
+                const { total, done, pct } = progressOf(p);
+                const busy = updatingSlug === p.slug;
+                const card = document.createElement('div');
+                card.className = `project-card ${selected && selected.slug === p.slug ? 'active' : ''}`;
+                card.innerHTML = `
+                    <button type="button" class="card-select">
+                        <div class="card-top">
+                            <div class="card-title">${escapeHtml(p.nombre)}</div>
+                            ${statusBadge(p.estado)}
+                        </div>
+                        <div class="card-meta">
+                            <span>👤 ${escapeHtml(p.director || 'Sin director')}</span>
+                            <span>📅 ${formatDate(p.fechaInicio)} – ${formatDate(p.fechaTermino)}</span>
+                            <span>💰 ${formatMoney(p.presupuestoAsignado)}</span>
+                        </div>
+                        ${total ? `
+                            <div class="progress"><div class="progress-bar" style="width: ${pct}%"></div></div>
+                            <div class="progress-label">Paquetes de trabajo completados: ${done}/${total}</div>` : ''}
+                    </button>
+                    <div class="card-actions">
+                        <button type="button" class="card-update" ${updatingSlug ? 'disabled' : ''}
+                            title="Sube una nueva versión del archivo (JSON, JSONL o Markdown) y reemplaza los datos de este proyecto">
+                            ${busy ? 'Actualizando…' : '📤 Actualizar'}
+                        </button>
+                        <button type="button" class="card-delete" ${updatingSlug ? 'disabled' : ''}
+                            title="Eliminar este proyecto y sus fragmentos en Supabase">
+                            🗑️ Borrar
+                        </button>
+                    </div>
+                    ${actionMessage.slug === p.slug && actionMessage.text
+                        ? `<div class="card-status ${escapeHtml(actionMessage.kind)}">${escapeHtml(actionMessage.text)}</div>` : ''}
+                `;
+                card.querySelector('.card-select').onclick = () => selectProject(p);
+                card.querySelector('.card-update').onclick = (event) => openDocumentPicker(p, event);
+                card.querySelector('.card-delete').onclick = (event) => {
+                    event.stopPropagation();
+                    confirmDeleteProject(p);
+                };
+                projectList.appendChild(card);
+            });
+            projectList.scrollTop = scroll;
+        }
+
+        function selectProject(project) {
+            selected = project;
+            renderProjects();
+            renderDetail();
+            renderSuggestions();
+
+            contextChip.classList.toggle('show', !!project);
+            contextText.textContent = project ? `Preguntando sobre: ${project.nombre}` : '';
+            messageInput.placeholder = project
+                ? `Pregunta sobre ${project.nombre}...`
+                : 'Escribe tu pregunta sobre los proyectos...';
+            messageInput.focus();
+        }
+
+        function renderDetail() {
+            if (!selected) {
+                projectDetail.classList.remove('show');
+                projectDetail.innerHTML = '';
+                return;
+            }
+
+            const p = selected;
+            const { total, done, pct } = progressOf(p);
+            const description = (p.descripcion || p.objetivo || '').replace(/^Descripción del Proyecto:\s*/i, '');
+
+            projectDetail.innerHTML = `
+                <div class="detail-title">${escapeHtml(p.nombre)} ${statusBadge(p.estado)}</div>
+                <div class="detail-sub">
+                    👤 ${escapeHtml(p.director || 'Sin director')}
+                    ${p.area ? ` · 🏢 ${escapeHtml(p.area)}` : ''}
+                    · 📅 ${formatDate(p.fechaInicio)} – ${formatDate(p.fechaTermino)}
+                </div>
+                ${description ? `
+                    <div class="detail-desc" id="detailDesc">${escapeHtml(description)}</div>
+                    <button class="link-button" onclick="toggleDescription(this)">Ver más</button>` : ''}
+                <div class="metrics">
+                    <div class="metric"><div class="metric-label">Presupuesto</div><div class="metric-value">${formatMoney(p.presupuestoAsignado)}</div></div>
+                    <div class="metric"><div class="metric-label">Costo real</div><div class="metric-value">${formatMoney(p.costoRealEjecutado)}</div></div>
+                    <div class="metric"><div class="metric-label">Beneficiarios</div><div class="metric-value">${escapeHtml(p.beneficiarios || '—')}</div></div>
+                    <div class="metric"><div class="metric-label">Avance</div><div class="metric-value">${total ? `${pct}% (${done}/${total})` : '—'}</div></div>
+                </div>
+                <div class="detail-actions">
+                    <button class="action-button" id="uploadDocBtn" onclick="openDocumentPicker()" ${updatingSlug ? 'disabled' : ''}
+                        title="Sube una nueva versión del archivo (JSON, JSONL o Markdown) del proyecto y reemplaza sus datos en Supabase">📤 Actualizar documento</button>
+                    <button class="action-button" id="reindexDocBtn" onclick="reindexDocument()" ${updatingSlug ? 'disabled' : ''}
+                        title="Vuelve a indexar el archivo que ya está en el servidor (útil si lo editaste a mano)">🔄 Reindexar archivo actual</button>
+                    <button class="action-button danger" id="deleteDocBtn" onclick="confirmDeleteProject(selected)" ${updatingSlug ? 'disabled' : ''}
+                        title="Elimina este proyecto y todos sus fragmentos en Supabase">🗑️ Eliminar proyecto</button>
+                    <span class="action-status ${actionMessage.slug === p.slug ? escapeHtml(actionMessage.kind) : ''}" id="actionStatus">${actionMessage.slug === p.slug ? escapeHtml(actionMessage.text) : ''}</span>
+                </div>
+            `;
+            projectDetail.classList.add('show');
+        }
+
+        // ---------- Document update ----------
+        function setActionState(busy, message, kind = '') {
+            const slug = (uploadTarget || selected)?.slug || null;
+            updatingSlug = busy ? slug : null;
+            if (slug) actionMessage = { slug, text: message || '', kind };
+
+            renderProjects();
+
+            ['uploadDocBtn', 'reindexDocBtn', 'deleteDocBtn'].forEach(id => {
+                const button = document.getElementById(id);
+                if (button) button.disabled = busy;
+            });
+            const status = document.getElementById('actionStatus');
+            if (status && selected && selected.slug === slug) {
+                status.textContent = message || '';
+                status.className = `action-status ${kind}`;
+            }
+        }
+
+        function openDocumentPicker(project, event) {
+            if (event) event.stopPropagation();
+            if (updatingSlug) return;
+            uploadMode = 'update';
+            uploadTarget = project || selected;
+            if (!uploadTarget) return;
+            documentInput.click();
+        }
+
+        function openNewProjectPicker(event) {
+            if (event) event.stopPropagation();
+            if (updatingSlug) return;
+            uploadMode = 'create';
+            uploadTarget = { slug: NEW_PROJECT_SLUG };
+            documentInput.click();
+        }
+
+        async function onDocumentSelected() {
+            const file = documentInput.files[0];
+            documentInput.value = '';
+            if (!file) return;
+            if (uploadMode === 'create') {
+                await onNewProjectSelected(file);
+                return;
+            }
+
+            const project = uploadTarget || selected;
+            if (!project) return;
+
+            let contents;
+            try {
+                contents = await readProjectFile(file);
+            } catch (error) {
+                setActionState(false, error.message, 'error');
+                return;
+            }
+            if (contents.length > 1) {
+                setActionState(false, `"${file.name}" contiene ${contents.length} proyectos; para actualizar este proyecto sube un archivo con uno solo.`, 'error');
+                return;
+            }
+
+            const selectedItem = contents[0];
+            const name = projectName(selectedItem);
+            const message = `Se reemplazarán los datos de "${project.nombre}" en Supabase con el archivo "${file.name}"`
+                + (name.trim() !== project.nombre.trim() ? ` (el archivo dice: "${name}")` : '')
+                + '.\n\nLos fragmentos que ya no existan se eliminarán. ¿Continuar?';
+            if (!confirm(message)) return;
+
+            const payload = selectedItem?.__isMarkdown ? selectedItem.content : selectedItem;
+            await updateDocument(payload);
+        }
+
+        function projectName(content) {
+            if (content?.__isMarkdown) return content.nombre || '';
+            const name = content?.baseConocimientos?.proyecto?.nombre;
+            return typeof name === 'string' ? name.trim() : '';
+        }
+
+        function isPlainObject(value) {
+            return value !== null && typeof value === 'object' && !Array.isArray(value);
+        }
+
+        function mergeRecords(target, source) {
+            for (const [key, value] of Object.entries(source)) {
+                const current = target[key];
+                if (Array.isArray(current) && Array.isArray(value)) target[key] = current.concat(value);
+                else if (isPlainObject(current) && isPlainObject(value)) target[key] = mergeRecords({ ...current }, value);
+                else target[key] = value;
+            }
+            return target;
+        }
+
+        function isChunkRecord(record) {
+            return isPlainObject(record) && typeof record.contenido === 'string';
+        }
+
+        // Pre-chunked records ({id, titulo, contenido, metadatos}) are grouped into one
+        // project per metadatos.proyectoId and stored server-side under "registros".
+        function groupChunkRecords(records, fileName) {
+            const groups = new Map();
+            const orphans = [];
+            for (const record of records) {
+                const meta = isPlainObject(record.metadatos) ? record.metadatos : {};
+                const nombre = typeof meta.proyecto === 'string' ? meta.proyecto.trim() : '';
+                if (!nombre) { orphans.push(record); continue; }
+                const key = meta.proyectoId != null ? `id:${meta.proyectoId}` : `nombre:${nombre}`;
+                if (!groups.has(key)) {
+                    groups.set(key, {
+                        baseConocimientos: { proyecto: { id: meta.proyectoId ?? null, nombre }, formato: 'registros' },
+                        registros: []
+                    });
+                }
+                groups.get(key).registros.push(record);
+            }
+
+            if (!groups.size) {
+                throw new Error(`"${fileName}": los registros no tienen metadatos.proyecto; no se sabe a qué proyecto pertenecen.`);
+            }
+            if (orphans.length) {
+                if (groups.size > 1) {
+                    throw new Error(`"${fileName}": ${orphans.length} registros no tienen metadatos.proyecto y el archivo mezcla varios proyectos.`);
+                }
+                groups.values().next().value.registros.push(...orphans);
+            }
+            return [...groups.values()];
+        }
+
+        // Accepts JSON, JSONL, or Markdown (.md) documents
+        async function readProjectFile(file) {
+            const text = (await file.text()).replace(/^\uFEFF/, '');
+            const isMd = /\.(md|markdown)$/i.test(file.name);
+            if (isMd) {
+                let nameMatch = text.match(/^#\s+(?:Documento\s+de\s+Proyecto|Proyecto)?\s*:?\s*(.+)$/im);
+                let name = nameMatch ? nameMatch[1].trim() : file.name.replace(/\.(md|markdown)$/i, '').replace(/[-_]/g, ' ');
+                return [{
+                    __isMarkdown: true,
+                    content: text,
+                    filename: file.name,
+                    nombre: name
+                }];
+            }
+            const isJsonl = /\.(jsonl|ndjson)$/i.test(file.name);
+            let records;
+
+            if (isJsonl) {
+                records = [];
+                const lines = text.split(/\r?\n/);
+                for (let i = 0; i < lines.length; i++) {
+                    if (!lines[i].trim()) continue;
+                    let record;
+                    try {
+                        record = JSON.parse(lines[i]);
+                    } catch {
+                        throw new Error(`"${file.name}" no es un JSONL válido: la línea ${i + 1} no es JSON.`);
+                    }
+                    if (!isPlainObject(record)) throw new Error(`"${file.name}": la línea ${i + 1} no es un objeto JSON.`);
+                    records.push(record);
+                }
+                if (!records.length) throw new Error(`"${file.name}" está vacío.`);
+            } else {
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch {
+                    throw new Error(`"${file.name}" no es un JSON válido.`);
+                }
+                records = Array.isArray(data) ? data : [data];
+            }
+
+            if (records.length && records.every(isChunkRecord)) return groupChunkRecords(records, file.name);
+
+            const complete = records.filter(record => projectName(record));
+            const contents = complete.length === records.length
+                ? records
+                : [records.reduce((merged, record) => mergeRecords(merged, record), {})];
+
+            if (!contents.every(projectName)) {
+                throw new Error(`"${file.name}" no tiene baseConocimientos.proyecto.nombre; no parece un documento de proyecto.`);
+            }
+            return contents;
+        }
+
+        async function createProject(content, filename) {
+            const response = await fetch(`${API_BASE_URL}/projects`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content, filename })
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : `HTTP ${response.status}`);
+            return data;
+        }
+
+        async function onNewProjectSelected(file) {
+            let contents;
+            try {
+                contents = await readProjectFile(file);
+            } catch (error) {
+                uploadTarget = { slug: NEW_PROJECT_SLUG };
+                setActionState(false, error.message, 'error');
+                return;
+            }
+
+            const names = contents.map(projectName);
+            const message = contents.length === 1
+                ? `Se añadirá el proyecto "${names[0]}" con el archivo "${file.name}".\n\n`
+                : `Se añadirán ${contents.length} proyectos del archivo "${file.name}":\n- ${names.join('\n- ')}\n\n`;
+            if (!confirm(message + 'Si alguno ya existe, se omitirá; usa Actualizar en su tarjeta. ¿Continuar?')) return;
+
+            uploadTarget = { slug: NEW_PROJECT_SLUG };
+            const created = [];
+            const failed = [];
+
+            for (let i = 0; i < contents.length; i++) {
+                const progress = contents.length > 1 ? ` (${i + 1}/${contents.length}: ${names[i]})` : '';
+                setActionState(true, `Añadiendo${progress}: generando embeddings y guardando en Supabase...`);
+                try {
+                    // With several projects in one file, each slug comes from its project name
+                    const filename = contents.length === 1 ? file.name : null;
+                    const payload = contents[i].__isMarkdown ? contents[i].content : contents[i];
+                    created.push(await createProject(payload, filename));
+                } catch (error) {
+                    console.error(error);
+                    failed.push(`${names[i]}: ${error.message}`);
+                }
+            }
+
+            await loadProjects();
+            if (created.length === 1) {
+                const project = projects.find(p => p.slug === created[0].slug);
+                if (project) selectProject(project);
+            }
+
+            created.forEach(data => addBotHtml(`➕ Se añadió el proyecto <strong>${escapeHtml(data.nombre)}</strong>: `
+                + `${data.documents} secciones y ${data.inserted} fragmentos guardados.`));
+
+            uploadTarget = { slug: NEW_PROJECT_SLUG };
+            if (!failed.length) {
+                const seconds = (created.reduce((total, data) => total + data.latency_ms, 0) / 1000).toFixed(1);
+                const fragments = created.reduce((total, data) => total + data.inserted, 0);
+                setActionState(false, `✔ ${created.length > 1 ? `${created.length} proyectos añadidos` : 'Añadido'} en ${seconds} s: ${fragments} fragmentos guardados.`, 'ok');
+            } else if (!created.length) {
+                setActionState(false, `No se pudo añadir: ${failed.join(' · ')}`, 'error');
+            } else {
+                setActionState(false, `Se añadieron ${created.length} de ${contents.length}. Fallaron: ${failed.join(' · ')}`, 'error');
+            }
+        }
+
+        async function reindexDocument() {
+            if (!selected) return;
+            uploadTarget = selected;
+            if (!confirm(`Se volverá a indexar el archivo actual de "${selected.nombre}" y se reemplazarán sus datos en Supabase. ¿Continuar?`)) return;
+            await updateDocument(null);
+        }
+
+        async function updateDocument(content) {
+            const project = uploadTarget || selected;
+            if (!project) return;
+            setActionState(true, 'Actualizando: generando embeddings y guardando en Supabase...');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/projects/${encodeURIComponent(project.slug)}/document`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(content ? { content } : {})
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
+
+                await loadProjects();
+                const updated = projects.find(p => p.slug === project.slug);
+                if (updated) selectProject(updated);
+
+                const seconds = (data.latency_ms / 1000).toFixed(1);
+                setActionState(false, `✔ Actualizado en ${seconds} s: ${data.inserted} fragmentos guardados, ${data.deleted} eliminados.`, 'ok');
+                addBotHtml(`🔄 Se actualizó el documento de <strong>${escapeHtml(data.nombre)}</strong>: `
+                    + `${data.documents} secciones, ${data.inserted} fragmentos guardados y ${data.deleted} fragmentos antiguos eliminados.`);
+            } catch (error) {
+                console.error(error);
+                setActionState(false, `No se pudo actualizar: ${error.message}`, 'error');
+            }
+        }
+
+        // ---------- Document delete ----------
+        let projectToDelete = null;
+
+        function confirmDeleteProject(project) {
+            if (!project || updatingSlug) return;
+            projectToDelete = project;
+            const modal = document.getElementById('deleteModal');
+            const msg = document.getElementById('deleteModalMessage');
+            msg.innerHTML = `¿Estás seguro de que deseas eliminar el proyecto <strong>${escapeHtml(project.nombre)}</strong>?`;
+            modal.classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.classList.remove('active');
+            projectToDelete = null;
+            const btn = document.getElementById('confirmDeleteBtn');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Eliminar definitivamente';
+            }
+        }
+
+        async function executeDeleteProject() {
+            if (!projectToDelete) return;
+            const project = projectToDelete;
+            const btn = document.getElementById('confirmDeleteBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Eliminando…';
+            }
+
+            setActionState(true, `Eliminando "${project.nombre}" de Supabase y del servidor...`);
+            try {
+                const response = await fetch(`${API_BASE_URL}/projects/${encodeURIComponent(project.slug)}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
+
+                closeDeleteModal();
+
+                if (selected && selected.slug === project.slug) {
+                    selectProject(null);
+                }
+
+                await loadProjects();
+
+                setActionState(false, `✔ Proyecto "${project.nombre}" eliminado (${data.deleted} fragmentos borrados de Supabase).`, 'ok');
+                addBotHtml(`🗑️ Se eliminó el proyecto <strong>${escapeHtml(data.nombre || project.nombre)}</strong>: se eliminó su archivo JSON y ${data.deleted} fragmentos fueron borrados de Supabase.`);
+            } catch (error) {
+                console.error('Error al eliminar el proyecto:', error);
+                closeDeleteModal();
+                setActionState(false, `No se pudo eliminar el proyecto: ${error.message}`, 'error');
+            }
+        }
+
+        function toggleDescription(button) {
+            const desc = document.getElementById('detailDesc');
+            const expanded = desc.classList.toggle('expanded');
+            button.textContent = expanded ? 'Ver menos' : 'Ver más';
+        }
+
+        function renderSuggestions() {
+            const questions = selected
+                ? PROJECT_QUESTIONS
+                : projects.slice(0, 3).map(p => `¿Cuál es el objetivo del proyecto ${p.nombre}?`);
+
+            suggestionsEl.innerHTML = '';
+            questions.forEach(q => {
+                const chip = document.createElement('button');
+                chip.className = 'suggestion';
+                chip.textContent = q;
+                chip.onclick = () => { messageInput.value = q; sendMessage(); };
+                suggestionsEl.appendChild(chip);
+            });
+            suggestionsEl.style.display = questions.length ? 'flex' : 'none';
+        }
+
+        // ---------- Chat ----------
+        function showWelcome() {
+            const list = projects.map(p => `<li><strong>${escapeHtml(p.nombre)}</strong> — ${escapeHtml(p.estado || 'Sin estado')}</li>`).join('');
+            addBotHtml(`
+                ¡Hola! 👋 Soy el asistente de información de proyectos.
+                ${projects.length ? `<br><br>Tengo información de ${projects.length} proyecto${projects.length > 1 ? 's' : ''}:<ul>${list}</ul>` : ''}
+                Selecciona un proyecto a la izquierda para enfocar tus preguntas, o pregunta sobre todos a la vez.
+            `);
+        }
+
+        function citationLabel(chunkId) {
+            const docId = chunkId.replace(/#\d+$/, '');
+            const title = titles[docId];
+            if (!title) return chunkId;
+            const [project, ...rest] = title.split(' | ');
+            const section = rest.join(' | ');
+            return selected ? section || project : `${project} · ${section}`;
+        }
+
+        function protectCitations(text, citations) {
+            const order = [];
+            const parts = String(text ?? '').split(/(```[\s\S]*?```)/g);
+            const marked = parts.map(part => {
+                if (part.startsWith('```')) return part;
+                return part.replace(/\[([^\]]+)\]/g, (match, id) => {
+                    if (!citations.includes(id)) return match;
+                    if (!order.includes(id)) order.push(id);
+                    return `\uE000CITE${order.indexOf(id)}\uE001`;
+                });
+            }).join('');
+            return { text: marked, order };
+        }
+
+        function formatInline(raw) {
+            let html = escapeHtml(raw);
+            html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+            html = html.replace(/___(.+?)___/g, '<strong><em>$1</em></strong>');
+            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
+            html = html.replace(/~~(.+?)~~/g, '<del>$1</del>');
+            html = html.replace(/(^|[^\w*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+            html = html.replace(/(^|\s)_([^_\n]+)_(?=[\s).,;:!?]|$)/g, '$1<em>$2</em>');
+            html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (match, label, url) =>
+                `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`);
+            html = html.replace(/(^|[\s(])(https?:\/\/[^\s<]+)/g, (match, prefix, url) => {
+                const trimmed = url.replace(/[.,;:!?)]+$/, '');
+                const rest = url.slice(trimmed.length);
+                return `${prefix}<a href="${trimmed}" target="_blank" rel="noopener noreferrer">${trimmed}</a>${rest}`;
+            });
+            return html;
+        }
+
+        function inline(raw) {
+            const source = String(raw ?? '');
+            let html = '';
+            let last = 0;
+            const code = /`([^`]+)`/g;
+            let match;
+            while ((match = code.exec(source))) {
+                html += formatInline(source.slice(last, match.index));
+                html += `<code>${escapeHtml(match[1])}</code>`;
+                last = match.index + match[0].length;
+            }
+            html += formatInline(source.slice(last));
+            return html;
+        }
+
+        function listMarker(line) {
+            const match = String(line).match(/^(\s*)([-*+•]|\d+[.)])\s+(.*)$/);
+            if (!match) return null;
+            return {
+                indent: match[1].length,
+                ordered: /\d/.test(match[2]),
+                text: match[3]
+            };
+        }
+
+        function isTableStart(lines, index) {
+            if (index + 1 >= lines.length || !lines[index].includes('|')) return false;
+            return /^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(lines[index + 1]);
+        }
+
+        function splitCells(line) {
+            let value = line.trim();
+            if (value.startsWith('|')) value = value.slice(1);
+            if (value.endsWith('|')) value = value.slice(0, -1);
+            return value.split('|').map(cell => cell.trim());
+        }
+
+        function isBlockStart(lines, index) {
+            const line = lines[index];
+            if (!line || !line.trim()) return false;
+            if (/^```/.test(line) || /^(#{1,6})\s+\S/.test(line) || /^>\s?/.test(line)) return true;
+            if (/^\s*([-*_])\1{2,}\s*$/.test(line)) return true;
+            if (listMarker(line) || isTableStart(lines, index)) return true;
+            return false;
+        }
+
+        function renderList(lines, start) {
+            const first = listMarker(lines[start]);
+            const tag = first.ordered ? 'ol' : 'ul';
+            let html = `<${tag}>`;
+            let i = start;
+            while (i < lines.length) {
+                const item = listMarker(lines[i]);
+                if (!item || item.indent < first.indent) break;
+                if (item.indent === first.indent && item.ordered !== first.ordered) break;
+                if (item.indent > first.indent) break;
+                i++;
+                let nested = '';
+                const child = listMarker(lines[i] || '');
+                if (child && child.indent > first.indent) {
+                    const rendered = renderList(lines, i);
+                    nested = rendered.html;
+                    i = rendered.index;
+                }
+                html += `<li>${inline(item.text)}${nested}</li>`;
+            }
+            html += `</${tag}>`;
+            return { html, index: i };
+        }
+
+        function renderTable(lines, start) {
+            const header = splitCells(lines[start]);
+            let i = start + 2;
+            const rows = [];
+            while (i < lines.length && lines[i].trim() && lines[i].includes('|')) {
+                rows.push(splitCells(lines[i]));
+                i++;
+            }
+            const head = header.map(cell => `<th>${inline(cell)}</th>`).join('');
+            const body = rows.map(row => `<tr>${row.map(cell => `<td>${inline(cell)}</td>`).join('')}</tr>`).join('');
+            return {
+                html: `<div class="table-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`,
+                index: i
+            };
+        }
+
+        function renderMarkdown(raw) {
+            const lines = String(raw ?? '').replace(/\r\n/g, '\n').replace(/\t/g, '  ').split('\n');
+            let html = '';
+            let i = 0;
+
+            while (i < lines.length) {
+                const line = lines[i];
+                if (!line.trim()) { i++; continue; }
+
+                if (/^```/.test(line)) {
+                    const code = [];
+                    i++;
+                    while (i < lines.length && !/^```/.test(lines[i])) {
+                        code.push(lines[i]);
+                        i++;
+                    }
+                    if (i < lines.length) i++;
+                    html += `<pre><code>${code.map(escapeHtml).join('\n')}</code></pre>`;
+                    continue;
+                }
+
+                const heading = line.match(/^(#{1,6})\s+(.*)$/);
+                if (heading && heading[2].trim()) {
+                    const level = heading[1].length;
+                    html += `<h${level}>${inline(heading[2].trim())}</h${level}>`;
+                    i++;
+                    continue;
+                }
+
+                if (/^\s*([-*_])\1{2,}\s*$/.test(line)) {
+                    html += '<hr>';
+                    i++;
+                    continue;
+                }
+
+                if (/^>\s?/.test(line)) {
+                    const quote = [];
+                    while (i < lines.length && /^>\s?/.test(lines[i])) {
+                        quote.push(lines[i].replace(/^>\s?/, ''));
+                        i++;
+                    }
+                    html += `<blockquote>${renderMarkdown(quote.join('\n'))}</blockquote>`;
+                    continue;
+                }
+
+                if (isTableStart(lines, i)) {
+                    const table = renderTable(lines, i);
+                    html += table.html;
+                    i = table.index;
+                    continue;
+                }
+
+                if (listMarker(line)) {
+                    const list = renderList(lines, i);
+                    html += list.html;
+                    i = list.index;
+                    continue;
+                }
+
+                const paragraph = [];
+                while (i < lines.length && lines[i].trim() && (paragraph.length === 0 || !isBlockStart(lines, i))) {
+                    paragraph.push(inline(lines[i]));
+                    i++;
+                }
+                html += `<p>${paragraph.join('<br>')}</p>`;
+            }
+
+            return html;
+        }
+
+        function renderAnswer(text, citations) {
+            const safeCitations = citations || [];
+            const protectedText = protectCitations(text, safeCitations);
+            let html = renderMarkdown(protectedText.text)
+                .replace(/\uE000CITE(\d+)\uE001/g, (_, n) => `<sup>[${Number(n) + 1}]</sup>`);
+
+            safeCitations.forEach(id => { if (!protectedText.order.includes(id)) protectedText.order.push(id); });
+            if (protectedText.order.length) {
+                html += `<div class="sources"><span class="sources-label">📚 Fuentes</span>${protectedText.order
+                    .map((id, i) => `<span class="source-chip" title="${escapeHtml(id)}">${i + 1} · ${escapeHtml(citationLabel(id))}</span>`)
+                    .join('')}</div>`;
+            }
+            return html;
+        }
+
+        function addBotHtml(html) {
+            const message = document.createElement('div');
+            message.className = 'message bot';
+            message.innerHTML = `<div class="avatar">✨</div><div class="bubble">${html}</div>`;
+            messagesEl.appendChild(message);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function addUserMessage(text, project) {
+            const message = document.createElement('div');
+            message.className = 'message user';
+            message.innerHTML = `
+                <div class="bubble">
+                    ${project ? `<span class="bubble-context">📁 ${escapeHtml(project.nombre)}</span>` : ''}
+                    ${escapeHtml(text)}
+                </div>
+                <div class="avatar">👤</div>`;
+            messagesEl.appendChild(message);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const text = messageInput.value.trim();
+            if (!text) return;
+
+            const project = selected;
+            const query = project ? `Sobre el proyecto "${project.nombre}": ${text}` : text;
+
+            addUserMessage(text, project);
+            messageInput.value = '';
+            sendBtn.disabled = true;
+            typingEl.style.display = 'flex';
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/answer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, top_k: 6 })
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                addBotHtml(renderAnswer(data.text || '', data.citations || []));
+            } catch (error) {
+                console.error(error);
+                addBotHtml('Lo siento, no pude obtener una respuesta. Verifica que el servidor esté en ejecución e inténtalo de nuevo. 🔌');
+            } finally {
+                typingEl.style.display = 'none';
+                sendBtn.disabled = false;
+                messageInput.focus();
+            }
+        }
+    </script>
+</body>
+</html>

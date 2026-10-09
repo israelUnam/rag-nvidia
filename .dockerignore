@@ -1,0 +1,28 @@
+# Virtual environments and caches
+.venv/
+venv/
+venv_*/
+__pycache__/
+*.py[cod]
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets (pass them at runtime with --env-file or the platform's env vars)
+.env
+.env.*
+*.pem
+*.key
+credentials*.json
+service-account*.json
+secrets/
+
+# Repository and editor files
+.git
+.gitignore
+.idea/
+.vscode/
+*.log
